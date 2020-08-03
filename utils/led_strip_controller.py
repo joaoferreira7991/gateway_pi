@@ -5,11 +5,18 @@ from _thread import start_new_thread
 
 class led_strip_controller:
 
-    brightness = 15
-
-    # shifting effect, rate of color change
-    STEP = 0.025
+    # Brightness value (0 to 255)
+    brightness = 25.5
+    # Brightness rate of change (10% rate)
+    BRIGHTNESS_LEVEL = 2.55
     
+    # Shifting effect, rate of color change
+    STEP = 0.025
+
+    # Increase / Decrease brightness variables
+    INCREASE_BRIGHTNESS = 0
+    DECREASE_BRIGHTNESS = 1
+
     def __init__(self, r=17, g=27, b=22):
         
         # LED GPIO pin position
@@ -22,16 +29,18 @@ class led_strip_controller:
         self.GREEN_COLOR = 0
         self.BLUE_COLOR = 0
 
-        self.pi = pigpio.pi()
-        self.setLight(self.RED_PIN, 255)
-        self.setLight(self.GREEN_PIN, 255)
-        self.setLight(self.BLUE_PIN, 255)
-
         # Flag to enable/disable shifting
         self.shifting = False
         # Flag to enable/disable breathing
         self.breathing = False
 
+    def start(self):
+        self.pi = pigpio.pi()
+        self.RED_COLOR = 255
+        self.GREEN_COLOR = 255
+        self.BLUE_COLOR = 255
+        self.updateColors()
+        
     # These update the color rgb values (0 to 255)
     def updateRed(self, color):
         if color < 0:
@@ -51,15 +60,32 @@ class led_strip_controller:
         if color > 255:
             color = 255
         self.BLUE_COLOR = color
+    
+    def updateColors(self, reset=0):
+        if reset == 1:
+            self.updateRed(0)
+            self.updateGreen(0)
+            self.updateBlue(0)
+            self.setLight(self.RED_PIN, self.RED_COLOR)
+            self.setLight(self.GREEN_PIN, self.GREEN_COLOR)
+            self.setLight(self.BLUE_PIN, self.BLUE_COLOR)
+        else:
+            self.setLight(self.RED_PIN, self.RED_COLOR)
+            self.setLight(self.GREEN_PIN, self.GREEN_COLOR)
+            self.setLight(self.BLUE_PIN, self.BLUE_COLOR)
+        
 
-    # Updates brightness variable. Values (0 to 255)
-    def updateBrightness(self, brightness):
-        if brightness < 0:
-            brightness = 0
-        if brightness > 255:
-            brightness = 255
-        self.brightness = brightness
-
+    '''
+    Increase or decreases the brightness value based on the rate argument passed.
+    Rate : 0 , Increases
+    Rate : 1 , Decreases
+    '''
+    def updateBrightness(self, rate : int):
+        if (rate == self.INCREASE_BRIGHTNESS and self.brightness + self.BRIGHTNESS_LEVEL < 255):
+            self.brightness += self.BRIGHTNESS_LEVEL
+        if (rate == self.DECREASE_BRIGHTNESS and self.brightness - self.BRIGHTNESS_LEVEL > 20):
+            self.brightness -= self.BRIGHTNESS_LEVEL
+    
     '''
     Updates the color the led, given a color rgb value.
 
@@ -89,39 +115,38 @@ class led_strip_controller:
     def start_colorshiftEffect(self):
         start_new_thread(self.colorshiftEffect, ())
 
+    def stop_colorshiftEffect(self):
+        self.shifting = False
+
     # Updates the color rgb values (0 to 255)
     def colorshiftEffect(self):  
-        self.shifting = True
-        self.updateRed(255)
-        self.updateGreen(0)
-        self.updateBlue(0)
-        self.setLight(self.RED_PIN, self.RED_COLOR)
-        self.setLight(self.GREEN_PIN, self.GREEN_COLOR)
-        self.setLight(self.BLUE_PIN, self.BLUE_COLOR)
+        try:
+            self.shifting = True
+            self.updateRed(255)
+            self.updateGreen(0)
+            self.updateBlue(0)
+            self.updateColors()
 
-        while(self.shifting):
-            while(self.RED_COLOR > 0 and self.shifting):
-                self.updateRed(self.RED_COLOR - self.STEP)
-                self.updateGreen(self.GREEN_COLOR + self.STEP)
-                self.setLight(self.RED_PIN, self.RED_COLOR)
-                self.setLight(self.GREEN_PIN, self.GREEN_COLOR)
-            while(self.GREEN_COLOR > 0 and self.shifting):
-                self.updateGreen(self.GREEN_COLOR - self.STEP)
-                self.updateBlue(self.BLUE_COLOR + self.STEP)
-                self.setLight(self.GREEN_PIN, self.GREEN_COLOR)
-                self.setLight(self.BLUE_PIN, self.BLUE_COLOR)                
-            while(self.BLUE_COLOR > 0 and self.shifting):
-                self.updateBlue(self.BLUE_COLOR - self.STEP)
-                self.updateRed(self.RED_COLOR + self.STEP)
-                self.setLight(self.BLUE_PIN, self.BLUE_COLOR)  
-                self.setLight(self.RED_PIN, self.RED_COLOR)                               
+            while(self.shifting):
+                while(self.RED_COLOR > 0 and self.shifting):
+                    self.updateRed(self.RED_COLOR - self.STEP)
+                    self.updateGreen(self.GREEN_COLOR + self.STEP)
+                    self.updateColors()
+                while(self.GREEN_COLOR > 0 and self.shifting):
+                    self.updateGreen(self.GREEN_COLOR - self.STEP)
+                    self.updateBlue(self.BLUE_COLOR + self.STEP)
+                    self.updateColors()              
+                while(self.BLUE_COLOR > 0 and self.shifting):
+                    self.updateBlue(self.BLUE_COLOR - self.STEP)
+                    self.updateRed(self.RED_COLOR + self.STEP)
+                    self.updateColors()
+        except AttributeError as error:
+            print('Error: ', error)
+            self.shifting = False                          
 
     # Stops the controller by updating every led to 0 and then stopping the pigpio instance
     def stop(self):
-        self.setLight(self.RED_PIN, 0)
-        self.setLight(self.GREEN_PIN, 0)
-        self.setLight(self.BLUE_PIN, 0)
-
-        # Wait 1 second to let the leds shut off
-        time.sleep(1)
+        self.shifting = False
+        self.breathing = False
+        self.updateColors(reset=1)
         self.pi.stop()

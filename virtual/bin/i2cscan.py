@@ -1,4 +1,4 @@
-#!/home/pi/repos/gateway_pi_example/virtual/bin/python
+#!/home/pi/repos/gateway_pi/virtual/bin/python
 # -*- coding: utf-8 -*-
 
 # Copyright (c) 2018-2020, Emmanuel Blot <emmanuel.blot@free.fr>

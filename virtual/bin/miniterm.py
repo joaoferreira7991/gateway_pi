@@ -1,4 +1,4 @@
-#!/home/pi/repos/gateway_pi_example/virtual/bin/python
+#!/home/pi/repos/gateway_pi/virtual/bin/python
 #
 # Very simple serial terminal
 #

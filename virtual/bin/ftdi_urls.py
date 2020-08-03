@@ -1,4 +1,4 @@
-#!/home/pi/repos/gateway_pi_example/virtual/bin/python
+#!/home/pi/repos/gateway_pi/virtual/bin/python
 
 # Copyright (c) 2019-2020, Emmanuel Blot <emmanuel.blot@free.fr>
 # All rights reserved.

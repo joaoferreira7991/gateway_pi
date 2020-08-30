@@ -19,7 +19,7 @@ class DateTimeEncoder(json.JSONEncoder):
                 'microsecond' : obj.microsecond                
             }
 
-# Custom json decoder for datetimeobjects
+# Custom json decoder for datetime objects
 class DateTimeDecoder(json.JSONDecoder):
     
     def __init__(self, *args, **kwargs):
@@ -39,5 +39,4 @@ class DateTimeDecoder(json.JSONDecoder):
         except:
             # If it fails, revert everything
             o['__type__'] = type
-            return o
-        
+            return o        

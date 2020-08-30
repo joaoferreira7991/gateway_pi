@@ -5,8 +5,6 @@ from _thread import start_new_thread
 
 class led_strip_controller:
 
-    # Brightness value (0 to 255)
-    brightness = 25.5
     # Brightness rate of change (10% rate)
     BRIGHTNESS_LEVEL = 2.55
     
@@ -17,29 +15,36 @@ class led_strip_controller:
     INCREASE_BRIGHTNESS = 0
     DECREASE_BRIGHTNESS = 1
 
-    def __init__(self, r=17, g=27, b=22):
+    def __init__(self, id, red, blue, green, shifting, brightness, gpio_red=17, gpio_green=27, gpio_blue=22):
         
+        # Identification number
+        self.id = id
+
         # LED GPIO pin position
-        self.RED_PIN = r
-        self.GREEN_PIN = g
-        self.BLUE_PIN = b
+        self.RED_PIN = gpio_red
+        self.GREEN_PIN = gpio_green
+        self.BLUE_PIN = gpio_blue
 
         # LED color values
-        self.RED_COLOR = 0
-        self.GREEN_COLOR = 0
-        self.BLUE_COLOR = 0
+        self.RED_COLOR = red
+        self.GREEN_COLOR = green
+        self.BLUE_COLOR = blue
+
+        # Brightness value (0 to 255)
+        self.brightness = brightness
 
         # Flag to enable/disable shifting
-        self.shifting = False
-        # Flag to enable/disable breathing
-        self.breathing = False
+        self.shifting = shifting
 
+        # Flag to enable/disable breathing
+        #self.breathing = False
+
+    # Starts a pigpio instance to read and write values from the gpio pins
     def start(self):
-        self.pi = pigpio.pi()
-        self.RED_COLOR = 255
-        self.GREEN_COLOR = 255
-        self.BLUE_COLOR = 255
+        self.pi = pigpio.pi() 
         self.updateColors()
+        if self.shifting:
+            self.start_colorshiftEffect()
         
     # These update the color rgb values (0 to 255)
     def updateRed(self, color):
@@ -61,15 +66,12 @@ class led_strip_controller:
             color = 255
         self.BLUE_COLOR = color
     
-    def updateColors(self, reset=0):
-        if reset == 1:
-            self.updateRed(0)
-            self.updateGreen(0)
-            self.updateBlue(0)
-            self.setLight(self.RED_PIN, self.RED_COLOR)
-            self.setLight(self.GREEN_PIN, self.GREEN_COLOR)
-            self.setLight(self.BLUE_PIN, self.BLUE_COLOR)
-        else:
+    def updateColors(self, stop=0):
+        if stop == 1:
+            self.setLight(self.RED_PIN, 0)
+            self.setLight(self.GREEN_PIN, 0)
+            self.setLight(self.BLUE_PIN, 0)
+        elif stop == 0:
             self.setLight(self.RED_PIN, self.RED_COLOR)
             self.setLight(self.GREEN_PIN, self.GREEN_COLOR)
             self.setLight(self.BLUE_PIN, self.BLUE_COLOR)
@@ -104,13 +106,6 @@ class led_strip_controller:
     def setLight(self, pin, color):
         realColor = int(int(color) * (float(self.brightness) / 255.0))
         self.pi.set_PWM_dutycycle(pin, realColor)
-    
-    def start_breathingEffect(self):
-        start_new_thread(self.breathingEffect, ())        
-
-    def breathingEffect(self):
-        while(True):
-            pass
 
     def start_colorshiftEffect(self):
         start_new_thread(self.colorshiftEffect, ())
@@ -122,11 +117,6 @@ class led_strip_controller:
     def colorshiftEffect(self):  
         try:
             self.shifting = True
-            self.updateRed(255)
-            self.updateGreen(0)
-            self.updateBlue(0)
-            self.updateColors()
-
             while(self.shifting):
                 while(self.RED_COLOR > 0 and self.shifting):
                     self.updateRed(self.RED_COLOR - self.STEP)
@@ -148,5 +138,5 @@ class led_strip_controller:
     def stop(self):
         self.shifting = False
         self.breathing = False
-        self.updateColors(reset=1)
+        self.updateColors(stop=1)
         self.pi.stop()

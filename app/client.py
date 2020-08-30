@@ -72,6 +72,8 @@ def loadValues(data):
 
             if controllerLed['state']:
                 oLED_CONTROLLER[controllerLed['id']-1].start()
+                if data['state_colorshift']:
+                    oLED_CONTROLLER[data['id']-1].start_colorshiftEffect()
 
 # Acknowledge event used mainly for callbacks
 @client.on('response', namespace='/client-pi')
@@ -119,6 +121,8 @@ def ledOn(data):
         # Start led controller by it's id
         try:                
             oLED_CONTROLLER[data['id']-1].start()
+            if data['state_colorshift']:
+                oLED_CONTROLLER[data['id']-1].start_colorshiftEffect()
             print('Led Strip #{} was turned on.'.format(data['id']))
             data['state'] = True
             return json.dumps(data)     

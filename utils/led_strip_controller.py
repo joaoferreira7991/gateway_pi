@@ -140,3 +140,4 @@ class led_strip_controller:
         self.breathing = False
         self.updateColors(stop=1)
         self.pi.stop()
+        return True

@@ -17,6 +17,7 @@ SMARTSWITCH_OFF = '/control?cmd=GPIO,12,0'
 
 # Global led_strip_controller object
 oLED_CONTROLLER = list()
+oLED_CONTROLLER_dict = dict()
 
 # Socketio client object
 client = socketio.Client(reconnection_delay=5)
@@ -47,7 +48,8 @@ def loadValues(data):
 
     # Load ControllerLed
     for controllerLed in parsed['arrControllerLed']:
-        global oLED_CONTROLLER        
+        global oLED_CONTROLLER    
+        global oLED_CONTROLLER_dict    
         write_flag = True
 
         # Check if this controller was already loaded before
@@ -58,7 +60,8 @@ def loadValues(data):
         
         # Only add to the list if it wasnt already loaded bfore
         if write_flag:            
-            oLED_CONTROLLER.append(controller(
+            # Add to list
+            aux = controller(
                 controllerLed['id'],
                 controllerLed['red'],
                 controllerLed['green'],
@@ -68,12 +71,35 @@ def loadValues(data):
                 controllerLed['gpio_red'],
                 controllerLed['gpio_green'],
                 controllerLed['gpio_blue']
-            ))
+            )
+            oLED_CONTROLLER.append(aux)
+            # Add reference of controllerLed id to oLED_CONTROLLER position
+            oLED_CONTROLLER_dict[controllerLed['id']] = oLED_CONTROLLER.index(aux)
 
-            if controllerLed['state']:
-                oLED_CONTROLLER[controllerLed['id']-1].start()
-                if data['state_colorshift']:
-                    oLED_CONTROLLER[data['id']-1].start_colorshiftEffect()
+            if controllerLed['state']:                
+                oLED_CONTROLLER[oLED_CONTROLLER_dict[controllerLed['id']]].start()
+                if controllerLed['state_colorshift']:
+                    oLED_CONTROLLER[oLED_CONTROLLER_dict[controllerLed['id']]].start_colorshiftEffect()
+
+# Event to add a controller led to the list
+@client.on('addController', namespace='/client-pi')
+def addController(data):
+    global oLED_CONTROLLER
+    global oLED_CONTROLLER_dict
+    aux = controller(
+        data['id'],
+        data['red'],
+        data['green'],
+        data['blue'],
+        data['state_colorshift'],
+        data['brightness'],
+        data['gpio_red'],
+        data['gpio_green'],
+        data['gpio_blue']
+    )
+    oLED_CONTROLLER.append(aux)
+    # Add reference of controllerLed id to oLED_CONTROLLER position
+    oLED_CONTROLLER_dict[data['id']] = oLED_CONTROLLER.index(aux)
 
 # Acknowledge event used mainly for callbacks
 @client.on('response', namespace='/client-pi')
@@ -120,9 +146,9 @@ def ledOn(data):
     if not data['state']:
         # Start led controller by it's id
         try:                
-            oLED_CONTROLLER[data['id']-1].start()
+            oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].start()
             if data['state_colorshift']:
-                oLED_CONTROLLER[data['id']-1].start_colorshiftEffect()
+                oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].start_colorshiftEffect()
             print('Led Strip #{} was turned on.'.format(data['id']))
             data['state'] = True
             return json.dumps(data)     
@@ -136,7 +162,7 @@ def ledOff(data):
     if data['state']:
         # Stop led controller by it's id
         try:                  
-            oLED_CONTROLLER[data['id']-1].stop()
+            oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].stop()
             print('Led Strip #{} was turned off.'.format(data['id']))
             data['state'] = False
             return json.dumps(data)     
@@ -151,7 +177,7 @@ def startColorshift(data):
         # Check if colorshift is off
         if not data['state_colorshift']:
             try:
-                oLED_CONTROLLER[data['id']-1].start_colorshiftEffect()
+                oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].start_colorshiftEffect()
                 print('Led Strip #{} started colorshifting.'.format(data['id']))
                 data['state_colorshift'] = True
                 return json.dumps(data)                     
@@ -166,12 +192,12 @@ def stopColorshift(data):
         # Check if colorshift is on
         if data['state_colorshift']:
             try:
-                oLED_CONTROLLER[data['id']-1].stop_colorshiftEffect()
+                oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].stop_colorshiftEffect()
                 print('Led Strip #{} stopped colorshifting.'.format(data['id']))
                 data['state_colorshift'] = False
-                data['red'] = oLED_CONTROLLER[data['id']-1].RED_COLOR
-                data['green'] = oLED_CONTROLLER[data['id']-1].GREEN_COLOR
-                data['blue'] = oLED_CONTROLLER[data['id']-1].BLUE_COLOR
+                data['red'] = oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].RED_COLOR
+                data['green'] = oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].GREEN_COLOR
+                data['blue'] = oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].BLUE_COLOR
                 return json.dumps(data)                    
             except AttributeError as error:
                 print('Error: ', error)      
@@ -183,11 +209,11 @@ def increaseBrightness(data):
     # Check if the led is turned on
     if data['state']:
         try:
-            oLED_CONTROLLER[data['id']-1].updateBrightness(controller.INCREASE_BRIGHTNESS)
-            if not oLED_CONTROLLER[data['id']-1].shifting:
-                oLED_CONTROLLER[data['id']-1].updateColors()
-                print('Led Strip #{} increase brightness. {}'.format(data['id'], oLED_CONTROLLER[data['id']-1].brightness))
-                data['brightness'] = oLED_CONTROLLER[data['id']-1].brightness
+            oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].updateBrightness(controller.INCREASE_BRIGHTNESS)
+            if oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].shifting:
+                oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].updateColors()
+                print('Led Strip #{} increase brightness. {}'.format(data['id'], oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].brightness))
+                data['brightness'] = oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].brightness
                 return json.dumps(data)
         except AttributeError as error:
             print('Error: ', error)              
@@ -198,14 +224,28 @@ def decreaseBrightness(data):
     # Check if the led is turned on
     if data['state']:
         try:
-            oLED_CONTROLLER[data['id']-1].updateBrightness(controller.DECREASE_BRIGHTNESS)
-            if not oLED_CONTROLLER[data['id']-1].shifting:
-                oLED_CONTROLLER[data['id']-1].updateColors()
-                print('Led Strip #{} decrease brightness. {}'.format(data['id'], oLED_CONTROLLER[data['id']-1].brightness))
-                data['brightness'] = oLED_CONTROLLER[data['id']-1].brightness
+            oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].updateBrightness(controller.DECREASE_BRIGHTNESS)
+            if not oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].shifting:
+                oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].updateColors()
+                print('Led Strip #{} decrease brightness. {}'.format(data['id'], oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].brightness))
+                data['brightness'] = oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].brightness
                 return json.dumps(data)
         except AttributeError as error:
             print('Error: ', error)    
+
+# Receives event to delete Controller Led
+@client.on('deleteController', namespace='/client-pi')
+def deleteController(data):
+    try:
+        if data['state']:
+            if oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]].stop():
+                oLED_CONTROLLER.remove(oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]])
+                oLED_CONTROLLER_dict.pop(data['id'])
+        else:
+            oLED_CONTROLLER.remove(oLED_CONTROLLER[oLED_CONTROLLER_dict[data['id']]])
+            oLED_CONTROLLER_dict.pop(data['id'])
+    except AttributeError as error:
+        print('Error: ', error) 
 
 
 # Receives event to send sensor data to the server

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# This script is used to create the python virtual environment needed for the program to run.
+
 echo "--Deleting old environment--"
 rm -r -f ./virtual/
 

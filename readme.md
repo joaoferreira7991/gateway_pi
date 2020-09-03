@@ -23,7 +23,7 @@ To run the program as a service on the raspberry pi you need to:
 
 #### 1. Copy the file gateway-pi.service to /lib/systemd/system
 ```bash
-cp gateway-pi.service /lib/systemmd/system
+cp gateway-pi.service /lib/systemd/system
 ```
 
 #### 2. Execute these commands in the terminal

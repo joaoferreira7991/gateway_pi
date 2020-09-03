@@ -8,7 +8,7 @@ source setup.sh
 ```
 to install the virtual environment necessary for the application to run.
 
-### Standalone Script
+### Standalone
 To run as a standalone program enter the virtual environment with
 ```bash
 source ./virtual/bin/activate

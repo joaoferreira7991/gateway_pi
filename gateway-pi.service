@@ -3,13 +3,13 @@ Description=Gateway Pi Service
 After=multi-user.target
 
 [Service]
-User=pi
+User=tufao
 Type=idle
 Restart=always
-WorkingDirectory=/home/pi/repos/gateway_pi
-VIRTUAL_ENV=/home/pi/repos/gateway_pi/virtual/
+WorkingDirectory=/home/tufao/repos/gateway_pi
+VIRTUAL_ENV=/home/tufao/repos/gateway_pi/virtual/
 Environment=PATH=$VIRTUAL_ENV/bin:$PATH
-ExecStart=/home/pi/repos/gateway_pi/virtual/bin/python /home/pi/repos/gateway_pi/main.py
+ExecStart=/home/tufao/repos/gateway_pi/virtual/bin/python /home/tufao/repos/gateway_pi/main.py
 
 [Install]
 WantedBy=multi-user.target

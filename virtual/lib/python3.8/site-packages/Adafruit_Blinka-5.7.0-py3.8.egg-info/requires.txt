@@ -1,0 +1,3 @@
+Adafruit-PlatformDetect>=2.18.1
+Adafruit-PureIO>=1.1.7
+pyftdi>=0.40.0

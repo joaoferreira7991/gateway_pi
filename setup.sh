@@ -13,9 +13,9 @@ source ./virtual/bin/activate
 echo "--Installing modules--"
 # Resolve dependencies
 sudo apt-get update
-sudo apt install libpq-dev
-sudo apt-get install pigpio
-sudo apt install libgpiod2
+sudo apt install -y libpq-dev
+sudo apt-get  install -y pigpio
+sudo apt install -y libgpiod2
 
 
 python -m pip install --upgrade pip
